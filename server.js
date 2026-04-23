@@ -7,39 +7,43 @@ app.use(cors());
 
 const PORT = process.env.PORT || 3000;
 
-// Root route (for testing)
+// Root route (test)
 app.get("/", (req, res) => {
     res.send("RSS Proxy is running ✅");
 });
 
-// RSS proxy route
+// RSS route (using rss2json to avoid blocking issues)
 app.get("/rss", async (req, res) => {
     const url = req.query.url;
 
     if (!url) {
-        return res.status(400).send("Missing URL");
+        return res.status(400).json({ error: "Missing URL" });
     }
 
     try {
-        const response = await fetch(url, {
-            headers: {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-                "Accept": "application/rss+xml, application/xml;q=0.9, */*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Connection": "keep-alive"
-            }
-        });
+        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`;
+
+        const response = await fetch(apiUrl);
 
         if (!response.ok) {
-            return res.status(response.status).send("Failed to fetch RSS");
+            return res.status(response.status).json({ error: "Failed to fetch RSS" });
         }
 
-        const text = await response.text();
-        res.send(text);
+        const data = await response.json();
+
+        if (data.status !== "ok") {
+            return res.status(500).json({ error: "Invalid RSS response" });
+        }
+
+        // Return clean JSON
+        res.json({
+            source: data.feed?.title || "Unknown Source",
+            items: data.items || []
+        });
 
     } catch (err) {
-        console.error("Fetch error:", err);
-        res.status(500).send("Failed to fetch RSS");
+        console.error("RSS Fetch Error:", err);
+        res.status(500).json({ error: "Failed to fetch RSS" });
     }
 });
 
