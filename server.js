@@ -7,18 +7,43 @@ app.use(cors());
 
 const PORT = process.env.PORT || 3000;
 
-const response = await fetch(url, {
-    headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "*/*",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Connection": "keep-alive"
-    }
-});
+// Root route (for testing)
 app.get("/", (req, res) => {
     res.send("RSS Proxy is running ✅");
 });
 
+// RSS proxy route
+app.get("/rss", async (req, res) => {
+    const url = req.query.url;
+
+    if (!url) {
+        return res.status(400).send("Missing URL");
+    }
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                "Accept": "application/rss+xml, application/xml;q=0.9, */*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Connection": "keep-alive"
+            }
+        });
+
+        if (!response.ok) {
+            return res.status(response.status).send("Failed to fetch RSS");
+        }
+
+        const text = await response.text();
+        res.send(text);
+
+    } catch (err) {
+        console.error("Fetch error:", err);
+        res.status(500).send("Failed to fetch RSS");
+    }
+});
+
+// Start server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
