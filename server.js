@@ -5,7 +5,6 @@ const cors = require("cors");
 const app = express();
 app.use(cors());
 
-// IMPORTANT: use dynamic port for Render
 const PORT = process.env.PORT || 3000;
 
 app.get("/rss", async (req, res) => {
@@ -16,12 +15,21 @@ app.get("/rss", async (req, res) => {
     }
 
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: {
+                "User-Agent": "Mozilla/5.0"
+            }
+        });
+
         const text = await response.text();
         res.send(text);
     } catch (err) {
         res.status(500).send("Failed to fetch RSS");
     }
+});
+
+app.get("/", (req, res) => {
+    res.send("RSS Proxy is running ✅");
 });
 
 app.listen(PORT, () => {
